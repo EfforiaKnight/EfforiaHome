@@ -1,0 +1,188 @@
+server {
+
+        listen 80 default_server;
+        listen [::]:80 default_server;
+    
+        server_name efforiahome.myiphost.com;
+	return 301 https://$server_name$request_uri;
+}
+
+server {
+    listen 80;
+    listen 443;
+    server_name mymoni.myiphost.com;
+
+    location / {
+        proxy_pass  http://localhost:6687;
+        proxy_redirect off;
+        proxy_set_header Host $host;
+        proxy_set_header Origin http://$host;
+        include /etc/nginx/proxy_params;
+    }
+}
+
+server {
+
+ # SSL configuration
+
+ listen 443 ssl http2 default_server;
+ listen [::]:443 ssl http2 default_server;
+ include /etc/nginx/snippets/strong-ssl.conf;
+ ssl_certificate /etc/letsencrypt/live/efforiahome.myiphost.com/fullchain.pem;
+ ssl_certificate_key /etc/letsencrypt/live/efforiahome.myiphost.com/privkey.pem;
+ error_log    /var/log/nginx/efforiahome.error.log;
+
+ # Root location
+ # root /usr/share/nginx/html;
+ root /var/www;
+ 
+ # Add index.php to the list if you are using PHP
+ index index.html index.htm index.nginx-debian.html index.php;
+ 
+ # Basic Auth to protect the site
+ auth_basic "Restricted";
+ auth_basic_user_file /etc/nginx/.htpasswd;
+
+ # Change the client side error pages (4xx) to prevent some information disclosure
+ error_page 401 403 404 /404.html;
+
+ # First attempt to serve request as file, then as directory,
+ # then fall back to displaying a 404.
+ 
+ location / {
+   try_files $uri $uri/ =404;
+ }
+
+ # PHP configuration
+ location ~ \.php$ {
+   fastcgi_pass unix:/run/php/php7.1-fpm.sock;
+   fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+   include fastcgi_params;
+   include snippets/fastcgi-php.conf;
+  }
+ 
+ # Deny access to .htaccess files, if Apache's document
+ # root concurs with nginx's one
+ 
+ location ~ /\.ht {
+          deny all;
+ }
+
+# Let's Encrypt Webroot plugin location -- allow access
+
+ location ^~ /.well-known/acme-challenge/ {
+          auth_basic off;
+          autoindex on;
+       }
+
+# Location settings for reverse proxy; enable those you wish to use
+# by removing the # from the section between the location line and the last }
+location /organizr/ {
+    try_files $uri $uri/ /index.php?$args;
+    }
+
+# Transmission
+  location /transmission {
+     proxy_pass http://127.0.0.1:9091;
+     proxy_set_header Host $host;
+     proxy_set_header X-Real-IP $remote_addr;
+     proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+   }
+ 
+# Monitorrent
+  location /monitorrent/ {
+     proxy_pass http://127.0.0.1:6687;
+     proxy_redirect off;
+     proxy_set_header Host $host;
+     proxy_set_header X-Real-IP $remote_addr;
+     proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+   }
+
+# Webmin
+  location /webmin/ {
+     proxy_pass http://127.0.0.1:10000/;
+     proxy_redirect http://$host:10000/ /webmin/;
+     proxy_set_header Host $host;
+     proxy_set_header X-Real-IP $remote_addr;
+     proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+   }
+
+# Deluge
+# location /deluge {
+#    proxy_pass http://localhost:8112/;
+#    proxy_set_header X-Deluge-Base "/deluge/";
+#    include snippets/proxy-control.conf;
+#  }
+#
+# NZBGet
+# location /nzbget {
+#   proxy_pass http://127.0.0.1:6789;
+#   proxy_set_header Host $host;
+#   proxy_set_header X-Real-IP $remote_addr;
+#   proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+# }
+#
+# Sonarr
+# location /sonarr {
+#    proxy_pass http://127.0.0.1:8989;
+#    proxy_set_header Host $host;
+#    proxy_set_header X-Real-IP $remote_addr;
+#    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+#  }
+#
+# SickRage
+# location /sickrage {
+#   proxy_pass http://127.0.0.1:8081;
+#   proxy_set_header Host $host;
+#   proxy_set_header X-Real-IP $remote_addr;
+#   proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+# }
+#
+# CouchPotato
+# location /couchpotato {
+#    proxy_pass http://127.0.0.1:5050;
+#    proxy_set_header Host $host;
+#    proxy_set_header X-Real-IP $remote_addr;
+#    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+#  }
+#
+# Madsonic
+# location /madsonic {
+#   proxy_pass http://127.0.0.1:4040;
+#   proxy_set_header Host $host;
+#   proxy_set_header X-Real-IP $remote_addr;
+#   proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+# }
+#
+# Headphones
+# location /headphones {
+#   proxy_pass http://127.0.0.1:8181;
+#   proxy_set_header Host $host;
+#   proxy_set_header X-Real-IP $remote_addr;
+#   proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+# }
+#
+# PlexPy
+# location /plexpy {
+#   proxy_pass http://127.0.0.1:8181;
+#   proxy_set_header Host $host;
+#   proxy_set_header X-Real-IP $remote_addr;
+#   proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+# }
+#
+# Monit
+  location /monit/ {
+    rewrite ^/monit/(.*) /$1 break;
+    proxy_ignore_client_abort on;
+    proxy_pass   https://127.0.0.1:2812;
+    proxy_set_header Host $host;
+  }
+ 
+# HTPC Manager
+# location /htpc {
+#   proxy_pass http://127.0.0.1:8085;
+#   proxy_set_header Host $host;
+#   proxy_set_header X-Real-IP $remote_addr;
+#   proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+# }
+}

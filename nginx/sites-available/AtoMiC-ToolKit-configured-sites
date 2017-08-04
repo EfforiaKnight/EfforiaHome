@@ -1,0 +1,32 @@
+server {
+    listen       80;
+    server_name  192.168.0.110  0.0.0.0;
+    access_log   /var/log/nginx/AtoMiC-ToolKit-configured-sites.access.log;
+    error_log    /var/log/nginx/AtoMiC-ToolKit-configured-sites.error.log;
+    root /var/www;
+    index index.html index.php;
+
+location /muximux/ {
+    try_files $uri $uri/ /index.php?$args;
+    }
+
+location /organizr/ {
+    try_files $uri $uri/ /index.php?$args;
+    }
+
+location /rutorrent/ {
+    try_files $uri $uri/ /index.html?$args;
+    }
+
+location ~ \.php$ {
+    try_files $uri =404;
+    include fastcgi_params;
+    fastcgi_pass unix:/var/run/php/php7.1-fpm.sock;
+    fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+    }
+
+location /RPC2 {
+      scgi_pass   127.0.0.1:5000;
+      include     scgi_params;
+    }
+}
